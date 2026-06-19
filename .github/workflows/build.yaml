@@ -1,11 +1,8 @@
 name: Build CefPdfWeaver
 
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Forgejo branch to build'
-        default: 'dev'
+  repository_dispatch:
+    types: [forgejo_ping]
 
 env:
   CEF_VERSION: cef_binary_149.0.3+gd84bb73+chromium-149.0.7827.115
@@ -16,7 +13,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" `
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - name: Download CEF
@@ -48,7 +45,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" `
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - uses: actions/setup-dotnet@v4
@@ -77,7 +74,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" `
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - uses: actions/setup-dotnet@v4
