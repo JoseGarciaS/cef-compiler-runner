@@ -5,7 +5,7 @@ on:
     types: [forgejo_ping]
 
 env:
-  CEF_VERSION: cef_binary_149.0.3+gd84bb73+chromium-149.0.7827.115
+  CEF_VERSION: cef_binary_149.0.4+g2f1bfd8+chromium-149.0.7827.156
 
 jobs:
   build-windows:
@@ -18,7 +18,7 @@ jobs:
 
       - name: Download CEF
         run: |
-          $url = "https://cef-builds.spotifycdn.com/$([uri]::EscapeDataString('${{ env.CEF_VERSION }}'))_windows64_minimal.tar.bz2"
+          $url = "https://cef-builds.spotifycdn.com/${CEF_VERSION}_windows64_minimal.tar.bz2"
           Invoke-WebRequest $url -OutFile cef.tar.bz2
           New-Item -ItemType Directory -Force C:\cef\windows | Out-Null
           tar -xjf cef.tar.bz2 -C C:\cef\windows --strip-components=1
@@ -83,6 +83,10 @@ jobs:
         with:
           name: nupkgs-win
           path: local-feed
+
+      - name: Remove local ProjectReference
+        working-directory: DotNet/TestApp
+        run: dotnet remove reference ../CefPdfWeaver/CefPdfWeaver.csproj
 
       - name: Add packages from local feed
         working-directory: DotNet/TestApp
@@ -182,6 +186,10 @@ jobs:
           name: nupkgs-linux
           path: local-feed
 
+      - name: Remove local ProjectReference
+        working-directory: DotNet/TestApp
+        run: dotnet remove reference ../CefPdfWeaver/CefPdfWeaver.csproj
+
       - name: Add packages from local feed
         working-directory: DotNet/TestApp
         run: |
@@ -208,12 +216,11 @@ jobs:
 
       - name: Install dependencies
         run: brew install cmake ninja wget
-
       - name: Download CEF
         run: |
           wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_macosx64_minimal.tar.bz2" -O cef.tar.bz2
           mkdir -p /tmp/cef/macos
-          tar -xjf cef.tar.bz2 -C /tmp/cef/macos --strip-components=1
+          tar -xjf cef.tar.bz2 -C /tmp/cef/macos
 
       - name: Configure
         run: cmake -S CefPdfWeaverHelper -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/macos
@@ -278,6 +285,10 @@ jobs:
         with:
           name: nupkgs-osx
           path: local-feed
+
+      - name: Remove local ProjectReference
+        working-directory: DotNet/TestApp
+        run: dotnet remove reference ../CefPdfWeaver/CefPdfWeaver.csproj
 
       - name: Add packages from local feed
         working-directory: DotNet/TestApp
