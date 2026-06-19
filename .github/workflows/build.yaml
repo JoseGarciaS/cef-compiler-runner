@@ -13,8 +13,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" `
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+          git clone --branch "${{ github.event.client_payload.ref }}" "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git"
 
       - name: Download CEF
         run: |
