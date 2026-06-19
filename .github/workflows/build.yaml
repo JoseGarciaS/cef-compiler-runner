@@ -119,7 +119,7 @@ jobs:
       - name: Push to Forgejo NuGet registry
         run: |
           dotnet nuget push artifacts/*.nupkg \
-            --source "https:${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
+            --source "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
             --api-key "${{ secrets.FORGEJO_TOKEN }}" \
             --skip-duplicate
 
