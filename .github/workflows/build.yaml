@@ -116,11 +116,19 @@ jobs:
           name: nupkgs-win
           path: artifacts
 
+      - name: Add Forgejo NuGet source
+        run: |
+          dotnet nuget add source \
+            --name forgejo \
+            --username "${{ secrets.FORGEJO_USERNAME }}" \
+            --password "${{ secrets.FORGEJO_TOKEN }}" \
+            --store-password-in-clear-text \
+            --source "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
+
       - name: Push to Forgejo NuGet registry
         run: |
           dotnet nuget push artifacts/*.nupkg \
-            --source "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
-            --api-key "${{ secrets.FORGEJO_TOKEN }}" \
+            --source forgejo \
             --skip-duplicate
 
       - name: Report success to Forgejo
