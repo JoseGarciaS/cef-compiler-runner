@@ -119,11 +119,11 @@ jobs:
       - name: Add Forgejo NuGet source
         run: |
           dotnet nuget add source \
+            "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
             --name forgejo \
             --username "${{ secrets.FORGEJO_USERNAME }}" \
             --password "${{ secrets.FORGEJO_TOKEN }}" \
-            --store-password-in-clear-text \
-            --source "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
+            --store-password-in-clear-text
 
       - name: Push to Forgejo NuGet registry
         run: |
