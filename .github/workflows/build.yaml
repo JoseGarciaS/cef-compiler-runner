@@ -1,0 +1,112 @@
+name: Build CefPdfWeaver
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Forgejo branch to build'
+        default: 'dev'
+
+env:
+  CEF_VERSION: cef_binary_149.0.3+gd84bb73+chromium-149.0.7827.115
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.inputs.ref }}" `
+            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - name: Download CEF
+        run: |
+          $url = "https://cef-builds.spotifycdn.com/$([uri]::EscapeDataString('${{ env.CEF_VERSION }}'))_windows64_minimal.tar.bz2"
+          Invoke-WebRequest $url -OutFile cef.tar.bz2
+          New-Item -ItemType Directory -Force C:\cef\windows | Out-Null
+          tar -xjf cef.tar.bz2 -C C:\cef\windows --strip-components=1
+
+      - name: Configure
+        run: |
+          cmake -S CefPdfWeaverHelper -B build/windows `
+            -DCEF_ROOT=C:\cef\windows
+
+      - name: Build
+        run: cmake --build build/windows --config Release --parallel
+
+      - name: Stage runtime
+        run: cmake --install build/windows --config Release --prefix stage/runtimes/win-x64/native
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-win-x64
+          path: stage/runtimes/win-x64/native
+
+  pack-windows:
+    runs-on: windows-latest
+    needs: build-windows
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.inputs.ref }}" `
+            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-win-x64
+          path: stage/runtimes/win-x64/native
+
+      - name: Pack
+        run: |
+          $VERSION = "0.0.${{ github.run_number }}"
+          dotnet pack DotNet\CefPdfWeaver\CefPdfWeaver.csproj -c Release -o artifacts /p:Version=$VERSION
+          dotnet pack DotNet\CefPdfWeaver.Runtime.win-x64\CefPdfWeaver.Runtime.win-x64.csproj -c Release -o artifacts /p:Version=$VERSION
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs-win
+          path: artifacts/*.nupkg
+
+  verify-windows:
+    runs-on: windows-latest
+    needs: pack-windows
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.inputs.ref }}" `
+            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-win
+          path: local-feed
+
+      - name: Add packages from local feed
+        working-directory: DotNet/TestApp
+        run: |
+          $VERSION = "0.0.${{ github.run_number }}"
+          dotnet add package CefPdfWeaver --version $VERSION --source "${{ github.workspace }}\local-feed"
+          dotnet add package CefPdfWeaver.runtime.win-x64 --version $VERSION --source "${{ github.workspace }}\local-feed"
+
+      - name: Publish test app
+        working-directory: DotNet/TestApp
+        run: dotnet publish -r win-x64 --self-contained -o publish
+
+      - name: Run smoke test
+        working-directory: DotNet/TestApp/publish
+        run: |
+          .\TestApp.exe --html-dir "${{ github.workspace }}\Html" --prefix ci
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::Smoke test failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+
+  
