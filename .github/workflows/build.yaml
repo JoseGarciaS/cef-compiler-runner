@@ -186,6 +186,11 @@ jobs:
           name: nupkgs-linux
           path: local-feed
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-win
+          path: local-feed
+
       - name: Remove local ProjectReference
         working-directory: DotNet/TestApp
         run: dotnet remove reference ../CefPdfWeaver/CefPdfWeaver.csproj
@@ -223,7 +228,7 @@ jobs:
           tar -xjf cef.tar.bz2 -C /tmp/cef/macos --strip-components=1
 
       - name: Configure
-        run: cmake -S CefPdfWeaverHelper -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/macos
+        run: cmake -S CefPdfWeaverHelper -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/macos -DCMAKE_CXX_FLAGS="-fexperimental-library"
 
       - name: Build
         run: cmake --build build/macos --parallel
