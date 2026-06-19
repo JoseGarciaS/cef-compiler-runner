@@ -170,7 +170,7 @@ jobs:
 
   verify-linux:
     runs-on: ubuntu-latest
-    needs: pack-linux
+    needs: [pack-linux, pack-windows]
     steps:
       - name: Clone from Forgejo
         run: |
