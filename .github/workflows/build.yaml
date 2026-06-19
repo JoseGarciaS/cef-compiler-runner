@@ -129,6 +129,7 @@ jobs:
         run: |
           dotnet nuget push artifacts/*.nupkg \
             --source forgejo \
+            --api-key "${{ secrets.FORGEJO_TOKEN }}" \
             --skip-duplicate
 
       - name: Report success to Forgejo
