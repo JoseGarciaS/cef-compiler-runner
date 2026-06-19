@@ -50,7 +50,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         with:
@@ -79,7 +79,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         with:
@@ -106,4 +106,42 @@ jobs:
             exit 1
           }
 
-  
+  publish-to-forgejo:
+    runs-on: ubuntu-latest
+    needs: [build-windows, pack-windows, verify-windows]
+    if: success()
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-win
+          path: artifacts
+
+      - name: Push to Forgejo NuGet registry
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --source "https:${{ secrets.FORGEJO_PACKAGES }}nuget/index.json" \
+            --api-key "${{ secrets.FORGEJO_TOKEN }}" \
+            --skip-duplicate
+
+      - name: Report success to Forgejo
+        run: |
+          SHA=$(git ls-remote "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" "refs/heads/${{ github.event.client_payload.ref }}" | cut -f1)
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
+            -d '{"state":"success","context":"github-windows-ci","description": "Build completed"}'
+
+  notify-forgejo-failure:
+    runs-on: ubuntu-latest
+    needs: [build-windows, pack-windows, verify-windows]
+    if: failure()
+    steps:
+      - name: Report failure to Forgejo
+        run: |
+          SHA=$(git ls-remote "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" "refs/heads/${{ github.event.client_payload.ref }}" | cut -f1)
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
+            -d '{"state":"failure","context":"github-windows-ci", "description": "Build failed"}'
