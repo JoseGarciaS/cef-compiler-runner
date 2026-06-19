@@ -18,7 +18,7 @@ jobs:
 
       - name: Download CEF
         run: |
-          $url = "https://cef-builds.spotifycdn.com/${CEF_VERSION}_windows64_minimal.tar.bz2"
+          $url = "https://cef-builds.spotifycdn.com/$([uri]::EscapeDataString('${{ env.CEF_VERSION }}'))_windows64_minimal.tar.bz2"
           Invoke-WebRequest $url -OutFile cef.tar.bz2
           New-Item -ItemType Directory -Force C:\cef\windows | Out-Null
           tar -xjf cef.tar.bz2 -C C:\cef\windows --strip-components=1
@@ -220,7 +220,7 @@ jobs:
         run: |
           wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_macosx64_minimal.tar.bz2" -O cef.tar.bz2
           mkdir -p /tmp/cef/macos
-          tar -xjf cef.tar.bz2 -C /tmp/cef/macos
+          tar -xjf cef.tar.bz2 -C /tmp/cef/macos --strip-components=1
 
       - name: Configure
         run: cmake -S CefPdfWeaverHelper -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/macos
