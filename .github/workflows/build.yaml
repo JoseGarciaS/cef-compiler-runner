@@ -315,7 +315,7 @@ jobs:
         run: dotnet publish -r osx-x64 --self-contained -o publish
 
       - name: List directory
-        working-directory: DotNet/TestApp
+        working-directory: DotNet/TestApp/publish
         run: ls
 
       - name: Ad-hoc codesign
