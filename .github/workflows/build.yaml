@@ -206,9 +206,12 @@ jobs:
         working-directory: DotNet/TestApp
         run: dotnet publish -r linux-x64 --self-contained -o publish
 
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
       - name: Run smoke test
         working-directory: DotNet/TestApp/publish
-        run: ./TestApp --html-dir "$GITHUB_WORKSPACE/Html" --prefix ci
+        run: xvfb-run --auto-servernum ./TestApp --html-dir "$GITHUB_WORKSPACE/Html" --prefix ci
 
   # Mac
   build-macos:
