@@ -278,7 +278,7 @@ jobs:
 
   verify-macos:
     runs-on: macos-15-intel
-    needs: pack-macos
+    needs: [pack-macos, pack-windows]
     steps:
       - name: Clone from Forgejo
         run: |
