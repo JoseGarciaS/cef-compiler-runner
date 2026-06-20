@@ -314,17 +314,23 @@ jobs:
         working-directory: DotNet/TestApp
         run: dotnet publish -r osx-x64 --self-contained -o publish
 
-      - name: List directory
-        working-directory: DotNet/TestApp/publish
-        run: ls
-
       - name: Ad-hoc codesign
         working-directory: DotNet/TestApp/publish
         run: |
           codesign --force --sign - \
               "cef_pdf_weaver_helper.app/Contents/Frameworks/Chromium Embedded Framework.framework/Chromium Embedded Framework"
           codesign --force --sign - \
-              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_subprocess Helper.app/Contents/MacOS/cef_pdf_weaver_subprocess Helper"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_subprocess.app/Contents/MacOS/cef_pdf_weaver_subprocess"
+          codesign --force --sign - \
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper.app/Contents/MacOS/cef_pdf_weaver_helper Helper"
+          codesign --force --sign - \
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Renderer).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Renderer)"
+          codesign --force --sign - \
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Plugin).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Plugin)"
+          codesign --force --sign - \
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Alerts).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Alerts)"
+          codesign --force --sign - \
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (GPU).app/Contents/MacOS/cef_pdf_weaver_helper Helper (GPU)"
           codesign --force --sign - "cef_pdf_weaver_helper.app"
 
       - name: Run smoke test
