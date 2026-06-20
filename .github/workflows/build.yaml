@@ -294,6 +294,11 @@ jobs:
           name: nupkgs-osx
           path: local-feed
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-win
+          path: local-feed
+
       - name: Remove local ProjectReference
         working-directory: DotNet/TestApp
         run: dotnet remove reference ../CefPdfWeaver/CefPdfWeaver.csproj
