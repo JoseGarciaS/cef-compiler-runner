@@ -1,11 +1,8 @@
 name: Cross-Compile + Smoke Test (Experiment)
 
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Forgejo branch to build'
-        default: 'dev'
+  repository_dispatch:
+    types: [forgejo_ping]
 
 env:
   CEF_VERSION: cef_binary_149.0.4+g2f1bfd8+chromium-149.0.7827.156
@@ -224,7 +221,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         continue-on-error: true
@@ -276,7 +273,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         with:
@@ -325,7 +322,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         with:
@@ -376,7 +373,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - uses: actions/download-artifact@v4
         with:
