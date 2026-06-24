@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - name: Install dependencies
@@ -55,7 +55,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - name: Install LLVM
@@ -134,7 +134,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - name: Install dependencies
@@ -216,7 +216,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - uses: actions/setup-dotnet@v4
@@ -268,7 +268,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - uses: actions/setup-dotnet@v4
@@ -317,7 +317,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" `
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - uses: actions/setup-dotnet@v4
@@ -368,7 +368,7 @@ jobs:
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.inputs.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" \
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@code.grupoleitz.com/Leitz-Group/cef-pdf-weaver.git" .
 
       - uses: actions/setup-dotnet@v4
