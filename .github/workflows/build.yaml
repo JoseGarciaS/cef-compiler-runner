@@ -8,7 +8,7 @@ env:
   CEF_VERSION: cef_binary_149.0.4+g2f1bfd8+chromium-149.0.7827.156
 
 jobs:
-  # ── LINUX — native ───────────────────────────────────────────────────────
+  # Linux
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +43,7 @@ jobs:
           name: runtime-linux-x64
           path: stage/runtimes/linux-x64/native
 
-  # ── WINDOWS — clang-cl + xwin on Linux ──────────────────────────────────
+  # Windows
   build-windows:
     runs-on: ubuntu-latest
     steps:
@@ -53,7 +53,13 @@ jobs:
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - name: Install LLVM
-        run: sudo apt update && sudo apt install -y clang lld llvm cmake ninja-build
+        run: |
+          sudo apt update && sudo apt install -y clang lld llvm cmake ninja-build
+          CLANG_CL=$(ls /usr/bin/clang-cl-* | sort -V | tail -1)
+          LLD_LINK=$(ls /usr/bin/lld-link-* | sort -V | tail -1)
+          sudo ln -sf "$CLANG_CL" /usr/local/bin/clang-cl
+          sudo ln -sf "$LLD_LINK" /usr/local/bin/lld-link
+          clang-cl --version
 
       - name: Install xwin
         run: |
@@ -120,7 +126,7 @@ jobs:
           name: runtime-win-x64
           path: stage/runtimes/win-x64/native
 
-  # ── macOS — osxcross on Linux ────────────────────────────────────────────
+  # Mac
   build-macos:
     runs-on: ubuntu-latest
     steps:
@@ -139,7 +145,9 @@ jobs:
         run: |
           mkdir -p /tmp/osxcross/tarballs
           curl -L -o /tmp/osxcross/tarballs/MacOSX13.3.sdk.tar.xz \
-            https://github.com/alexey-lysiuk/macos-sdk/releases/download/13.3/MacOSX13.3.sdk.tar.xz
+            https://github.com/joseluisq/macosx-sdks/releases/download/13.3/MacOSX13.3.sdk.tar.xz
+          # Verify integrity
+          echo "518e35eae6039b3f64e8025f4525c1c43786cc5cf39459d609852faf091e34be  /tmp/osxcross/tarballs/MacOSX13.3.sdk.tar.xz" | sha256sum -c
 
       - name: Build osxcross
         run: |
@@ -197,8 +205,6 @@ jobs:
         with:
           name: runtime-osx-x64
           path: stage/runtimes/osx-x64/native.zip
-
-  # ── everything below this line is unchanged from your current workflow ───
 
   pack-windows:
     runs-on: windows-latest
