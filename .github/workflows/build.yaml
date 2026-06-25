@@ -83,6 +83,7 @@ jobs:
           set(XWIN_ROOT "/opt/xwin")
           set(CMAKE_C_COMPILER clang-cl)
           set(CMAKE_CXX_COMPILER clang-cl)
+          set(CMAKE_TRY_COMPILE_CONFIGURATION Release)
           set(CMAKE_LINKER lld-link)
           set(CMAKE_C_COMPILER_TARGET x86_64-pc-windows-msvc)
           set(CMAKE_CXX_COMPILER_TARGET x86_64-pc-windows-msvc)
@@ -165,18 +166,22 @@ jobs:
 
       - name: Write toolchain file
         run: |
-          cat > /tmp/toolchain-mac.cmake << 'EOF'
+          TRIPLE=$(ls /opt/osxcross/bin/x86_64-apple-darwin*-clang 2>/dev/null \
+            | head -1 | xargs basename | sed 's/-clang//')
+          echo "Detected osxcross triple: $TRIPLE"
+
+          cat > /tmp/toolchain-mac.cmake << EOF
           set(CMAKE_SYSTEM_NAME Darwin)
           set(CMAKE_SYSTEM_PROCESSOR x86_64)
           set(OSXCROSS_ROOT "/opt/osxcross")
-          set(TRIPLE "x86_64-apple-darwin22")
-          set(CMAKE_C_COMPILER   "${OSXCROSS_ROOT}/bin/${TRIPLE}-clang")
-          set(CMAKE_CXX_COMPILER "${OSXCROSS_ROOT}/bin/${TRIPLE}-clang++")
-          set(CMAKE_AR           "${OSXCROSS_ROOT}/bin/${TRIPLE}-ar")
-          set(CMAKE_RANLIB       "${OSXCROSS_ROOT}/bin/${TRIPLE}-ranlib")
-          set(CMAKE_OSX_SYSROOT           "${OSXCROSS_ROOT}/SDK/MacOSX13.3.sdk")
+          set(TRIPLE "$TRIPLE")
+          set(CMAKE_C_COMPILER   "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-clang")
+          set(CMAKE_CXX_COMPILER "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-clang++")
+          set(CMAKE_AR           "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-ar")
+          set(CMAKE_RANLIB       "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-ranlib")
+          set(CMAKE_OSX_SYSROOT           "\${OSXCROSS_ROOT}/SDK/MacOSX13.3.sdk")
           set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3")
-          set(CMAKE_FIND_ROOT_PATH "${OSXCROSS_ROOT}")
+          set(CMAKE_FIND_ROOT_PATH "\${OSXCROSS_ROOT}")
           set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
           set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
           set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
