@@ -141,8 +141,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y clang lld llvm cmake ninja-build \
-            libssl-dev libxml2-dev patch python3 xz-utils git curl zip \
-            libxar-dev
+            libssl-dev libxml2-dev patch python3 xz-utils git curl zip
 
       - name: Download macOS SDK
         run: |
