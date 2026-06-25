@@ -141,7 +141,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y clang lld llvm cmake ninja-build \
-            libssl-dev libxml2-dev patch python3 xz-utils git curl zip
+            libssl-dev libxml2-dev patch python3 xz-utils git curl zip \
+            libxar-dev
 
       - name: Download macOS SDK
         run: |
@@ -456,9 +457,17 @@ jobs:
   publish-to-forgejo:
     runs-on: ubuntu-latest
     needs:
-      [ build-windows, pack-windows, verify-windows,
-        build-linux,   pack-linux,   verify-linux,
-        build-macos,   pack-macos,   verify-macos ]
+      [
+        build-windows,
+        pack-windows,
+        verify-windows,
+        build-linux,
+        pack-linux,
+        verify-linux,
+        build-macos,
+        pack-macos,
+        verify-macos,
+      ]
     if: success()
     steps:
       - uses: actions/download-artifact@v4
@@ -508,9 +517,17 @@ jobs:
   notify-forgejo-failure:
     runs-on: ubuntu-latest
     needs:
-      [ build-windows, pack-windows, verify-windows,
-        build-linux,   pack-linux,   verify-linux,
-        build-macos,   pack-macos,   verify-macos ]
+      [
+        build-windows,
+        pack-windows,
+        verify-windows,
+        build-linux,
+        pack-linux,
+        verify-linux,
+        build-macos,
+        pack-macos,
+        verify-macos,
+      ]
     if: failure()
     steps:
       - name: Report failure to Forgejo
