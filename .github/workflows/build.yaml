@@ -8,221 +8,42 @@ env:
   CEF_VERSION: cef_binary_149.0.4+g2f1bfd8+chromium-149.0.7827.156
 
 jobs:
-  # ── BUILD ─────────────────────────────────────────────────────────────────
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone from Forgejo
-        run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
-
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install -y cmake ninja-build libgtk-3-dev libnss3 libasound2t64 libxss1
-
-      - name: Download CEF
-        run: |
-          wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_linux64_minimal.tar.bz2" -O cef.tar.bz2
-          mkdir -p /tmp/cef/linux
-          tar -xjf cef.tar.bz2 -C /tmp/cef/linux --strip-components=1
-
-      - name: Configure
-        run: |
-          cmake -S CefPdfWeaverHelper -B build/linux -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCEF_ROOT=/tmp/cef/linux
-
-      - name: Build
-        run: cmake --build build/linux --parallel
-
-      - name: Stage runtime
-        run: cmake --install build/linux --prefix stage/runtimes/linux-x64/native
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: runtime-linux-x64
-          path: stage/runtimes/linux-x64/native
-
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
-
-      - name: Install LLVM
-        run: |
-          sudo apt update && sudo apt install -y clang lld llvm cmake ninja-build
-          CLANG_CL=$(ls /usr/bin/clang-cl-* | sort -V | tail -1)
-          LLD_LINK=$(ls /usr/bin/lld-link-* | sort -V | tail -1)
-          sudo ln -sf "$CLANG_CL" /usr/local/bin/clang-cl
-          sudo ln -sf "$LLD_LINK" /usr/local/bin/lld-link
-          clang-cl --version
-
-      - name: Install xwin
-        run: |
-          curl -L -o xwin.tar.gz \
-            https://github.com/Jake-Shadle/xwin/releases/download/0.6.5/xwin-0.6.5-x86_64-unknown-linux-musl.tar.gz
-          tar xzf xwin.tar.gz
-          sudo mv xwin-0.6.5-x86_64-unknown-linux-musl/xwin /usr/local/bin/
-          xwin --accept-license splat --output /opt/xwin
 
       - name: Download CEF
         run: |
-          wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_windows64_minimal.tar.bz2" -O cef.tar.bz2
-          mkdir -p /tmp/cef/windows
-          tar -xjf cef.tar.bz2 -C /tmp/cef/windows --strip-components=1
-
-      - name: Write toolchain file
-        run: |
-          cat > /tmp/toolchain-win.cmake << 'EOF'
-          set(CMAKE_SYSTEM_NAME Windows)
-          set(CMAKE_SYSTEM_PROCESSOR AMD64)
-          set(CMAKE_TRY_COMPILE_CONFIGURATION Release)
-          set(XWIN_ROOT "/opt/xwin")
-          set(CMAKE_C_COMPILER clang-cl)
-          set(CMAKE_CXX_COMPILER clang-cl)
-          set(CMAKE_LINKER lld-link)
-          set(CMAKE_C_COMPILER_TARGET x86_64-pc-windows-msvc)
-          set(CMAKE_CXX_COMPILER_TARGET x86_64-pc-windows-msvc)
-          foreach(inc
-              "${XWIN_ROOT}/crt/include"
-              "${XWIN_ROOT}/sdk/include/ucrt"
-              "${XWIN_ROOT}/sdk/include/um"
-              "${XWIN_ROOT}/sdk/include/shared")
-            string(APPEND CMAKE_CXX_FLAGS_INIT " /imsvc${inc}")
-            string(APPEND CMAKE_C_FLAGS_INIT " /imsvc${inc}")
-          endforeach()
-          string(APPEND CMAKE_CXX_FLAGS_INIT " -Wno-unused-command-line-argument")
-          string(APPEND CMAKE_C_FLAGS_INIT " -Wno-unused-command-line-argument")
-          foreach(lib
-              "${XWIN_ROOT}/crt/lib/x86_64"
-              "${XWIN_ROOT}/sdk/lib/um/x86_64"
-              "${XWIN_ROOT}/sdk/lib/ucrt/x86_64")
-            string(APPEND CMAKE_EXE_LINKER_FLAGS_INIT " /libpath:${lib}")
-            string(APPEND CMAKE_SHARED_LINKER_FLAGS_INIT " /libpath:${lib}")
-          endforeach()
-          set(CMAKE_FIND_ROOT_PATH "${XWIN_ROOT}")
-          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-          EOF
+          $url = "https://cef-builds.spotifycdn.com/$([uri]::EscapeDataString('${{ env.CEF_VERSION }}'))_windows64_minimal.tar.bz2"
+          Invoke-WebRequest $url -OutFile cef.tar.bz2
+          New-Item -ItemType Directory -Force C:\cef\windows | Out-Null
+          tar -xjf cef.tar.bz2 -C C:\cef\windows --strip-components=1
 
       - name: Configure
-        run: |
-          cmake -S CefPdfWeaverHelper -B build/windows -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=/tmp/toolchain-win.cmake \
-            -DCEF_ROOT=/tmp/cef/windows \
-            -DUSE_SANDBOX=OFF
+        run: cmake -S CefPdfWeaverHelper -B build/windows -DCEF_ROOT=C:\cef\windows
 
       - name: Build
-        run: cmake --build build/windows --parallel
+        run: cmake --build build/windows --config Release --parallel
 
       - name: Stage runtime
-        run: cmake --install build/windows --prefix stage/runtimes/win-x64/native
+        run: cmake --install build/windows --config Release --prefix stage/runtimes/win-x64/native
 
       - uses: actions/upload-artifact@v4
         with:
           name: runtime-win-x64
           path: stage/runtimes/win-x64/native
 
-  build-macos:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone from Forgejo
-        run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
-
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y clang lld llvm cmake ninja-build \
-            libssl-dev libxml2-dev patch python3 xz-utils git curl zip
-
-      - name: Download macOS SDK
-        run: |
-          mkdir -p /tmp/osxcross/tarballs
-          curl -L -o /tmp/osxcross/tarballs/MacOSX13.3.sdk.tar.xz \
-            https://github.com/joseluisq/macosx-sdks/releases/download/13.3/MacOSX13.3.sdk.tar.xz
-          echo "518e35eae6039b3f64e8025f4525c1c43786cc5cf39459d609852faf091e34be  /tmp/osxcross/tarballs/MacOSX13.3.sdk.tar.xz" | sha256sum -c
-
-      - name: Build osxcross
-        run: |
-          git clone --depth=1 https://github.com/tpoechtrager/osxcross /tmp/osxcross-src
-          cp /tmp/osxcross/tarballs/MacOSX13.3.sdk.tar.xz /tmp/osxcross-src/tarballs/
-          cd /tmp/osxcross-src
-          UNATTENDED=1 ./build.sh
-          sudo mv target /opt/osxcross
-
-      - name: Add osxcross to PATH
-        run: echo "/opt/osxcross/bin" >> $GITHUB_PATH
-
-      - name: Download CEF
-        run: |
-          wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_macosx64_minimal.tar.bz2" -O cef.tar.bz2
-          mkdir -p /tmp/cef/macos
-          tar -xjf cef.tar.bz2 -C /tmp/cef/macos --strip-components=1
-
-      - name: Write toolchain file
-        run: |
-          TRIPLE=$(ls /opt/osxcross/bin/x86_64-apple-darwin*-clang 2>/dev/null \
-            | head -1 | xargs basename | sed 's/-clang//')
-          echo "Detected osxcross triple: $TRIPLE"
-
-          cat > /tmp/toolchain-mac.cmake << EOF
-          set(CMAKE_SYSTEM_NAME Darwin)
-          set(CMAKE_SYSTEM_PROCESSOR x86_64)
-          set(OSXCROSS_ROOT "/opt/osxcross")
-          set(TRIPLE "$TRIPLE")
-          set(CMAKE_C_COMPILER   "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-clang")
-          set(CMAKE_CXX_COMPILER "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-clang++")
-          set(CMAKE_AR           "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-ar")
-          set(CMAKE_RANLIB       "\${OSXCROSS_ROOT}/bin/\${TRIPLE}-ranlib")
-          set(CMAKE_OSX_SYSROOT           "\${OSXCROSS_ROOT}/SDK/MacOSX13.3.sdk")
-          set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3")
-          set(CMAKE_FIND_ROOT_PATH "\${OSXCROSS_ROOT}")
-          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-          EOF
-
-      - name: Configure
-        run: |
-          cmake -S CefPdfWeaverHelper -B build/macos -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=/tmp/toolchain-mac.cmake \
-            -DCEF_ROOT=/tmp/cef/macos \
-            -DUSE_SANDBOX=OFF \
-            -DCMAKE_CXX_FLAGS="-fexperimental-library"
-
-      - name: Build
-        run: cmake --build build/macos --parallel
-
-      - name: Stage and zip runtime
-        run: |
-          cmake --install build/macos --prefix stage/runtimes/osx-x64/native
-          cd stage/runtimes/osx-x64
-          zip -ry native.zip native/
-          rm -rf native
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: runtime-osx-x64
-          path: stage/runtimes/osx-x64/native.zip
-
-  # ── PACK ──────────────────────────────────────────────────────────────────
-
   pack-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build-windows
     steps:
       - name: Clone from Forgejo
         run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
+          git clone --branch "${{ github.event.client_payload.ref }}" `
             "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - uses: actions/setup-dotnet@v4
@@ -236,72 +57,14 @@ jobs:
 
       - name: Pack
         run: |
-          VERSION="0.0.${{ github.run_number }}"
-          dotnet pack DotNet/CefPdfWeaver/CefPdfWeaver.csproj -c Release -o artifacts /p:Version=$VERSION
-          dotnet pack DotNet/CefPdfWeaver.Runtime.win-x64/CefPdfWeaver.Runtime.win-x64.csproj -c Release -o artifacts /p:Version=$VERSION
+          $VERSION = "0.0.${{ github.run_number }}"
+          dotnet pack DotNet\CefPdfWeaver\CefPdfWeaver.csproj -c Release -o artifacts /p:Version=$VERSION
+          dotnet pack DotNet\CefPdfWeaver.Runtime.win-x64\CefPdfWeaver.Runtime.win-x64.csproj -c Release -o artifacts /p:Version=$VERSION
 
       - uses: actions/upload-artifact@v4
         with:
           name: nupkgs-win
           path: artifacts/*.nupkg
-
-  pack-linux:
-    runs-on: ubuntu-latest
-    needs: build-linux
-    steps:
-      - name: Clone from Forgejo
-        run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: runtime-linux-x64
-          path: stage/runtimes/linux-x64/native
-
-      - name: Pack
-        run: |
-          VERSION="0.0.${{ github.run_number }}"
-          dotnet pack DotNet/CefPdfWeaver.Runtime.linux-x64/CefPdfWeaver.Runtime.linux-x64.csproj -c Release -o artifacts /p:Version=$VERSION
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nupkgs-linux
-          path: artifacts/*.nupkg
-
-  pack-macos:
-    runs-on: ubuntu-latest
-    needs: build-macos
-    steps:
-      - name: Clone from Forgejo
-        run: |
-          git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: runtime-osx-x64
-          path: stage/runtimes/osx-x64/
-
-      - name: Pack
-        run: |
-          VERSION="0.0.${{ github.run_number }}"
-          dotnet pack DotNet/CefPdfWeaver.Runtime.osx-x64/CefPdfWeaver.Runtime.osx-x64.csproj -c Release -o artifacts /p:Version=$VERSION
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: nupkgs-osx
-          path: artifacts/*.nupkg
-
-  # ── VERIFY ────────────────────────────────────────────────────────────────
 
   verify-windows:
     runs-on: windows-latest
@@ -345,6 +108,66 @@ jobs:
             exit 1
           }
 
+  #  Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.client_payload.ref }}" \
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y cmake ninja-build libgtk-3-dev libnss3 libasound2t64 libxss1
+
+      - name: Download CEF
+        run: |
+          wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_linux64_minimal.tar.bz2" -O cef.tar.bz2
+          mkdir -p /tmp/cef/linux
+          tar -xjf cef.tar.bz2 -C /tmp/cef/linux --strip-components=1
+
+      - name: Configure
+        run: cmake -S CefPdfWeaverHelper -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/linux
+
+      - name: Build
+        run: cmake --build build/linux --parallel
+
+      - name: Stage runtime
+        run: cmake --install build/linux --prefix stage/runtimes/linux-x64/native
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-linux-x64
+          path: stage/runtimes/linux-x64/native
+
+  pack-linux:
+    runs-on: ubuntu-latest
+    needs: build-linux
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.client_payload.ref }}" \
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-linux-x64
+          path: stage/runtimes/linux-x64/native
+
+      - name: Pack
+        run: |
+          VERSION="0.0.${{ github.run_number }}"
+          dotnet pack DotNet/CefPdfWeaver.Runtime.linux-x64/CefPdfWeaver.Runtime.linux-x64.csproj -c Release -o artifacts /p:Version=$VERSION
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs-linux
+          path: artifacts/*.nupkg
+
   verify-linux:
     runs-on: ubuntu-latest
     needs: [pack-linux, pack-windows]
@@ -352,7 +175,7 @@ jobs:
       - name: Clone from Forgejo
         run: |
           git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -390,6 +213,69 @@ jobs:
         working-directory: DotNet/TestApp/publish
         run: xvfb-run --auto-servernum ./TestApp --html-dir "$GITHUB_WORKSPACE/Html" --prefix ci
 
+  # Mac
+  build-macos:
+    runs-on: macos-15-intel
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.client_payload.ref }}" \
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - name: Install dependencies
+        run: brew install cmake ninja wget
+      - name: Download CEF
+        run: |
+          wget -q "https://cef-builds.spotifycdn.com/${CEF_VERSION}_macosx64_minimal.tar.bz2" -O cef.tar.bz2
+          mkdir -p /tmp/cef/macos
+          tar -xjf cef.tar.bz2 -C /tmp/cef/macos --strip-components=1
+
+      - name: Configure
+        run: cmake -S CefPdfWeaverHelper -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef/macos -DCMAKE_CXX_FLAGS="-fexperimental-library"
+
+      - name: Build
+        run: cmake --build build/macos --parallel
+
+      - name: Stage and zip runtime
+        run: |
+          cmake --install build/macos --prefix stage/runtimes/osx-x64/native
+          cd stage/runtimes/osx-x64
+          ditto -c -k --sequesterRsrc native native.zip
+          rm -rf native
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-osx-x64
+          path: stage/runtimes/osx-x64/native.zip
+
+  pack-macos:
+    runs-on: macos-15-intel
+    needs: build-macos
+    steps:
+      - name: Clone from Forgejo
+        run: |
+          git clone --branch "${{ github.event.client_payload.ref }}" \
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-osx-x64
+          path: stage/runtimes/osx-x64/
+
+      - name: Pack
+        run: |
+          VERSION="0.0.${{ github.run_number }}"
+          dotnet pack DotNet/CefPdfWeaver.Runtime.osx-x64/CefPdfWeaver.Runtime.osx-x64.csproj -c Release -o artifacts /p:Version=$VERSION
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs-osx
+          path: artifacts/*.nupkg
+
   verify-macos:
     runs-on: macos-15-intel
     needs: [pack-macos, pack-windows]
@@ -397,7 +283,7 @@ jobs:
       - name: Clone from Forgejo
         run: |
           git clone --branch "${{ github.event.client_payload.ref }}" \
-            "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
+              "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" .
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -432,27 +318,26 @@ jobs:
         working-directory: DotNet/TestApp/publish
         run: |
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/Chromium Embedded Framework.framework/Chromium Embedded Framework"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/Chromium Embedded Framework.framework/Chromium Embedded Framework"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_subprocess.app/Contents/MacOS/cef_pdf_weaver_subprocess"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_subprocess.app/Contents/MacOS/cef_pdf_weaver_subprocess"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper.app/Contents/MacOS/cef_pdf_weaver_helper Helper"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper.app/Contents/MacOS/cef_pdf_weaver_helper Helper"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Renderer).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Renderer)"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Renderer).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Renderer)"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Plugin).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Plugin)"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Plugin).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Plugin)"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Alerts).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Alerts)"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (Alerts).app/Contents/MacOS/cef_pdf_weaver_helper Helper (Alerts)"
           codesign --force --sign - \
-            "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (GPU).app/Contents/MacOS/cef_pdf_weaver_helper Helper (GPU)"
+              "cef_pdf_weaver_helper.app/Contents/Frameworks/cef_pdf_weaver_helper Helper (GPU).app/Contents/MacOS/cef_pdf_weaver_helper Helper (GPU)"
           codesign --force --sign - "cef_pdf_weaver_helper.app"
 
       - name: Run smoke test
         working-directory: DotNet/TestApp/publish
         run: ./TestApp --html-dir "$GITHUB_WORKSPACE/Html" --prefix ci
 
-  # ── PUBLISH ───────────────────────────────────────────────────────────────
-
+  # Publish
   publish-to-forgejo:
     runs-on: ubuntu-latest
     needs:
@@ -484,34 +369,30 @@ jobs:
           name: nupkgs-osx
           path: artifacts
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
       - name: Add Forgejo NuGet source
         run: |
           dotnet nuget add source \
-            "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
-            --name forgejo \
-            --username "${{ secrets.FORGEJO_USERNAME }}" \
-            --password "${{ secrets.FORGEJO_TOKEN }}" \
-            --store-password-in-clear-text
+              "https://${{ secrets.FORGEJO_PACKAGES }}/nuget/index.json" \
+              --name forgejo \
+              --username "${{ secrets.FORGEJO_USERNAME }}" \
+              --password "${{ secrets.FORGEJO_TOKEN }}" \
+              --store-password-in-clear-text
 
       - name: Push to Forgejo NuGet registry
         run: |
           dotnet nuget push artifacts/*.nupkg \
-            --source forgejo \
-            --api-key "${{ secrets.FORGEJO_TOKEN }}" \
-            --skip-duplicate
+              --source forgejo \
+              --api-key "${{ secrets.FORGEJO_TOKEN }}" \
+              --skip-duplicate
 
       - name: Report success to Forgejo
         run: |
           SHA=$(git ls-remote "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" "refs/heads/${{ github.event.client_payload.ref }}" | cut -f1)
           curl -X POST \
-            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
-            -d '{"state":"success","context":"github-ci","description":"Build completed"}'
+              -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
+              -d '{"state":"success","context":"github-ci","description": "Build completed"}'
 
   notify-forgejo-failure:
     runs-on: ubuntu-latest
@@ -533,7 +414,7 @@ jobs:
         run: |
           SHA=$(git ls-remote "https://oauth2:${{ secrets.FORGEJO_TOKEN }}@${{ secrets.FORGEJO_REPO_URL }}.git" "refs/heads/${{ github.event.client_payload.ref }}" | cut -f1)
           curl -X POST \
-            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
-            -d '{"state":"failure","context":"github-ci","description":"Build failed"}'
+              -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              "https://${{ secrets.FORGEJO_API }}/statuses/$SHA" \
+              -d '{"state":"failure","context":"github-ci", "description": "Build failed"}'
