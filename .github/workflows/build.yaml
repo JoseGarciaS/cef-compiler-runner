@@ -161,9 +161,9 @@ jobs:
 
       - name: Stage and zip runtime
         run: |
-          cmake --install build/macos-x64 --prefix stage/runtimes/osx-x64/native
+          cmake --install build/macos-arm64 --prefix stage/runtimes/osx-arm64/native
 
-          APP="stage/runtimes/osx-x64/native/cef_pdf_weaver_helper.app"
+          APP="stage/runtimes/osx-arm64/native/cef_pdf_weaver_helper.app"
           FRAMEWORKS="$APP/Contents/Frameworks"
 
           codesign --force --sign - \
@@ -182,7 +182,7 @@ jobs:
             "$FRAMEWORKS/cef_pdf_weaver_helper Helper (GPU).app"
           codesign --force --sign - "$APP"
 
-          cd stage/runtimes/osx-x64
+          cd stage/runtimes/osx-arm64
           ditto -c -k --sequesterRsrc native native.zip
           rm -rf native
 
